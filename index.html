@@ -99,7 +99,7 @@
   <h1>💵 Maaş Takip</h1>
   <span class="sub">Mesai · Avans · Prim · Resmi/Elden</span>
   <span class="sub no-print" id="surumEt" style="opacity:.7;margin-left:6px"></span>
-  <span class="sub no-print" id="abonelikEt" style="margin-left:8px;font-weight:700"></span>
+  <span class="sub no-print" id="abonelikEt" title="Abonelik planları" onclick="planSec()" style="margin-left:8px;font-weight:700;cursor:pointer"></span>
   <div class="spacer"></div>
   <span id="bulutDurum" class="sub no-print" style="font-weight:600"></span>
   <button class="btn gray sm no-print" onclick="disaAktar()">⬇ Yedek</button>
@@ -143,6 +143,25 @@
     <button class="btn" style="width:100%" onclick="aboneligiYenile()">🔄 Aboneliği Yenile</button>
     <div style="height:10px"></div>
     <button class="btn gray" style="width:100%" onclick="cikisYap()">🔒 Çıkış</button>
+  </div>
+</div>
+
+<div id="planEkrani" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:70;overflow:auto">
+  <div class="card" style="max-width:440px;margin:8vh auto 0">
+    <h2 style="margin:0 0 4px">Abonelik Planı Seç</h2>
+    <div class="hint" style="margin-top:0;margin-bottom:14px">İşine uygun planı seç, sonra Abone Ol.</div>
+    <div id="planAylik" onclick="planIsaretle('aylik')" style="border:2px solid var(--accent);border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer">
+      <div style="font-weight:800;font-size:16px">Aylık</div>
+      <div style="font-size:22px;font-weight:800;color:var(--accent)"><span id="fAylik"></span> ₺<span style="font-size:13px;color:var(--muted);font-weight:600">/ay</span></div>
+    </div>
+    <div id="planYillik" onclick="planIsaretle('yillik')" style="border:2px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;cursor:pointer">
+      <div style="font-weight:800;font-size:16px">Yıllık <span class="pill elden" style="margin-left:6px">avantajlı</span></div>
+      <div style="font-size:22px;font-weight:800;color:var(--accent)"><span id="fYillik"></span> ₺<span style="font-size:13px;color:var(--muted);font-weight:600">/yıl</span></div>
+      <div class="tag" id="fYillikNot" style="color:var(--green)"></div>
+    </div>
+    <button class="btn" style="width:100%" onclick="aboneOl()">Abone Ol</button>
+    <div style="height:8px"></div>
+    <button class="btn gray" style="width:100%" onclick="planKapat()">Kapat</button>
   </div>
 </div>
 
@@ -222,7 +241,9 @@
 
 <script>
 /* ================= Sürüm / Güncelleme ================= */
-const APP_SURUM="urun-1.2";   // her yayında bunu ve version.json'u birlikte artır
+const APP_SURUM="urun-1.3";
+const FIYAT_AYLIK=199, FIYAT_YILLIK=1990;   // ₺ (placeholder — kesin fiyatı sonra ayarla)
+let secilenPlan='aylik';   // her yayında bunu ve version.json'u birlikte artır
 function uygulamayiGuncelle(){ location.replace(location.pathname+'?v='+Date.now()); } // önbelleği atlayıp en yeni sürümü çeker
 async function guncellemeKontrol(){
   try{ const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok)return;
@@ -953,7 +974,7 @@ async function kayitOl(){ var firma=(document.getElementById('g_firma').value||'
     if(data.session){ oturum=data.session; hata.textContent=''; await girisSonrasi(); }
     else { modKayit(false); hata.style.color='var(--green)'; hata.textContent='Kayıt oluştu — artık giriş yapabilirsin.'; }
   }catch(e){ hata.style.color='var(--red)'; hata.textContent='Kayıt başarısız: '+(e.message||e); } }
-function aboneligiYenile(){ alert('Aboneliği yenilemek için ödeme/iletişim yakında eklenecek. Şimdilik yöneticiyle iletişime geç.'); }
+function aboneligiYenile(){ planSec(); }
 async function abonelikKontrol(){
   try{
     const {data,error}=await sb.from('firmalar').select('ad,abonelik_bitis,plan').limit(1).single();
@@ -969,6 +990,23 @@ async function abonelikKontrol(){
       if(et){ et.textContent=(data.plan==='aktif'?'Abonelik':'Deneme')+': '+kalan+' gün'; et.style.color=kalan<=7?'#fde68a':'#e0f2fe'; }
     }
   }catch(e){}
+}
+function planSec(){
+  var f=n=>Number(n).toLocaleString('tr-TR');
+  document.getElementById('fAylik').textContent=f(FIYAT_AYLIK);
+  document.getElementById('fYillik').textContent=f(FIYAT_YILLIK);
+  var tas=FIYAT_AYLIK*12-FIYAT_YILLIK;
+  document.getElementById('fYillikNot').textContent = tas>0 ? ('Yılda '+f(tas)+' ₺ tasarruf') : '';
+  planIsaretle('aylik');
+  document.getElementById('planEkrani').style.display='';
+}
+function planKapat(){ document.getElementById('planEkrani').style.display='none'; }
+function planIsaretle(p){ secilenPlan=p;
+  document.getElementById('planAylik').style.borderColor = p==='aylik'?'var(--accent)':'var(--line)';
+  document.getElementById('planYillik').style.borderColor = p==='yillik'?'var(--accent)':'var(--line)'; }
+function aboneOl(){
+  var isim = secilenPlan==='yillik' ? ('Yıllık — '+FIYAT_YILLIK.toLocaleString('tr-TR')+' ₺') : ('Aylık — '+FIYAT_AYLIK.toLocaleString('tr-TR')+' ₺');
+  alert('Seçilen plan: '+isim+'\n\nÖdeme (iyzico/PayTR) bir sonraki adımda bağlanacak; ödeme onaylanınca aboneliğin otomatik uzayacak.');
 }
 async function cikisYap(){ if(!confirm('Çıkış yapılsın mı?'))return;
   try{ if(sb&&oturum&&cevrimici){ const el=document.getElementById('bulutDurum'); if(el)el.textContent='⏳ kaydediliyor…'; await bulutGonder(); } }catch(e){}  // çıkmadan önce bekleyenleri buluta gönder
