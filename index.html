@@ -99,6 +99,7 @@
   <h1>💵 Maaş Takip</h1>
   <span class="sub">Mesai · Avans · Prim · Resmi/Elden</span>
   <span class="sub no-print" id="surumEt" style="opacity:.7;margin-left:6px"></span>
+  <span class="sub no-print" id="abonelikEt" style="margin-left:8px;font-weight:700"></span>
   <div class="spacer"></div>
   <span id="bulutDurum" class="sub no-print" style="font-weight:600"></span>
   <button class="btn gray sm no-print" onclick="disaAktar()">⬇ Yedek</button>
@@ -131,6 +132,17 @@
       <span id="kayitLink">Hesabın yok mu? <a href="#" onclick="modKayit(true);return false" style="color:var(--accent);font-weight:600">Kayıt Ol</a></span>
       <span id="girisLink" style="display:none">Zaten hesabın var mı? <a href="#" onclick="modKayit(false);return false" style="color:var(--accent);font-weight:600">Giriş Yap</a></span>
     </div>
+  </div>
+</div>
+
+<div id="abonelikEkrani" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:60;overflow:auto">
+  <div class="card" style="max-width:420px;margin:12vh auto 0;text-align:center">
+    <div style="font-size:42px">⏳</div>
+    <h2 style="margin:6px 0">Aboneliğin sona erdi</h2>
+    <div class="hint" id="abonelikMesaj" style="margin-bottom:16px">Devam etmek için aboneliğini yenile. Verilerin güvende, kaybolmadı.</div>
+    <button class="btn" style="width:100%" onclick="aboneligiYenile()">🔄 Aboneliği Yenile</button>
+    <div style="height:10px"></div>
+    <button class="btn gray" style="width:100%" onclick="cikisYap()">🔒 Çıkış</button>
   </div>
 </div>
 
@@ -210,7 +222,7 @@
 
 <script>
 /* ================= Sürüm / Güncelleme ================= */
-const APP_SURUM="urun-1.1";   // her yayında bunu ve version.json'u birlikte artır
+const APP_SURUM="urun-1.2";   // her yayında bunu ve version.json'u birlikte artır
 function uygulamayiGuncelle(){ location.replace(location.pathname+'?v='+Date.now()); } // önbelleği atlayıp en yeni sürümü çeker
 async function guncellemeKontrol(){
   try{ const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok)return;
@@ -941,6 +953,23 @@ async function kayitOl(){ var firma=(document.getElementById('g_firma').value||'
     if(data.session){ oturum=data.session; hata.textContent=''; await girisSonrasi(); }
     else { modKayit(false); hata.style.color='var(--green)'; hata.textContent='Kayıt oluştu — artık giriş yapabilirsin.'; }
   }catch(e){ hata.style.color='var(--red)'; hata.textContent='Kayıt başarısız: '+(e.message||e); } }
+function aboneligiYenile(){ alert('Aboneliği yenilemek için ödeme/iletişim yakında eklenecek. Şimdilik yöneticiyle iletişime geç.'); }
+async function abonelikKontrol(){
+  try{
+    const {data,error}=await sb.from('firmalar').select('ad,abonelik_bitis,plan').limit(1).single();
+    const ae=document.getElementById('abonelikEkrani'), et=document.getElementById('abonelikEt');
+    if(error||!data||!data.abonelik_bitis){ if(ae)ae.style.display='none'; if(et)et.textContent=''; return; }
+    const bitis=new Date(data.abonelik_bitis), simdi=new Date(), aktif=bitis>simdi;
+    if(!aktif){
+      const am=document.getElementById('abonelikMesaj'); if(am)am.textContent=(data.ad||'Firman')+' için süre doldu. Yenileyince kaldığın yerden devam edersin; verilerin duruyor.';
+      if(ae)ae.style.display='';
+    } else {
+      if(ae)ae.style.display='none';
+      const kalan=Math.ceil((bitis-simdi)/86400000);
+      if(et){ et.textContent=(data.plan==='aktif'?'Abonelik':'Deneme')+': '+kalan+' gün'; et.style.color=kalan<=7?'#fde68a':'#e0f2fe'; }
+    }
+  }catch(e){}
+}
 async function cikisYap(){ if(!confirm('Çıkış yapılsın mı?'))return;
   try{ if(sb&&oturum&&cevrimici){ const el=document.getElementById('bulutDurum'); if(el)el.textContent='⏳ kaydediliyor…'; await bulutGonder(); } }catch(e){}  // çıkmadan önce bekleyenleri buluta gönder
   if(localStorage.getItem('maas_kirli') && !confirm('Bazı değişiklikler buluta gönderilemedi. Yine de çıkılsın mı? (Değişiklikler bu cihazda saklı kalır)')) { durumGoster(); return; }
@@ -966,7 +995,7 @@ async function girisSonrasi(){
   document.getElementById('cikisBtn').style.display='';
   document.getElementById('sifreBtn').style.display='';
   document.getElementById('senkronBtn').style.display='';
-  await ilkGoc(); await bulutYukle(); if(!aktifTab())git('ozet'); durumGoster();
+  await ilkGoc(); await bulutYukle(); if(!aktifTab())git('ozet'); durumGoster(); await abonelikKontrol();
   setInterval(()=>{ if(!yaziyorMu()&&!batchDoluMu()) bulutYukle(true); }, 20000); }
 
 async function baslat(){ yukle();
