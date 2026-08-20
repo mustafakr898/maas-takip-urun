@@ -241,8 +241,8 @@
 
 <script>
 /* ================= Sürüm / Güncelleme ================= */
-const APP_SURUM="urun-1.3";
-const FIYAT_AYLIK=199, FIYAT_YILLIK=1990;   // ₺ (placeholder — kesin fiyatı sonra ayarla)
+const APP_SURUM="urun-1.4";
+let FIYAT_AYLIK=199, FIYAT_YILLIK=1990;   // ₺ (placeholder — kesin fiyatı sonra ayarla)
 let secilenPlan='aylik';   // her yayında bunu ve version.json'u birlikte artır
 function uygulamayiGuncelle(){ location.replace(location.pathname+'?v='+Date.now()); } // önbelleği atlayıp en yeni sürümü çeker
 async function guncellemeKontrol(){
@@ -1008,6 +1008,7 @@ function aboneOl(){
   var isim = secilenPlan==='yillik' ? ('Yıllık — '+FIYAT_YILLIK.toLocaleString('tr-TR')+' ₺') : ('Aylık — '+FIYAT_AYLIK.toLocaleString('tr-TR')+' ₺');
   alert('Seçilen plan: '+isim+'\n\nÖdeme (iyzico/PayTR) bir sonraki adımda bağlanacak; ödeme onaylanınca aboneliğin otomatik uzayacak.');
 }
+async function ayarlariYukle(){ try{ const {data}=await sb.from('ayarlar').select('anahtar,deger'); if(data) data.forEach(function(r){ if(r.anahtar==='fiyat_aylik')FIYAT_AYLIK=Number(r.deger)||FIYAT_AYLIK; else if(r.anahtar==='fiyat_yillik')FIYAT_YILLIK=Number(r.deger)||FIYAT_YILLIK; }); }catch(e){} }
 async function cikisYap(){ if(!confirm('Çıkış yapılsın mı?'))return;
   try{ if(sb&&oturum&&cevrimici){ const el=document.getElementById('bulutDurum'); if(el)el.textContent='⏳ kaydediliyor…'; await bulutGonder(); } }catch(e){}  // çıkmadan önce bekleyenleri buluta gönder
   if(localStorage.getItem('maas_kirli') && !confirm('Bazı değişiklikler buluta gönderilemedi. Yine de çıkılsın mı? (Değişiklikler bu cihazda saklı kalır)')) { durumGoster(); return; }
@@ -1040,7 +1041,7 @@ async function baslat(){ yukle();
   try{ document.getElementById('surumEt').textContent='v'+APP_SURUM; }catch(e){}
   guncellemeKontrol(); setInterval(guncellemeKontrol, 15*60*1000); window.addEventListener('focus',guncellemeKontrol); // sürüm kontrolü
   if(!window.supabase){ document.getElementById('appWrap').style.display=''; git('ozet'); durumGoster(); return; }
-  sbInit();
+  sbInit(); ayarlariYukle();
   try{ sb.auth.onAuthStateChange((ev,session)=>{ if(ev==='SIGNED_OUT'){ location.reload(); } else if(session){ oturum=session; } }); }catch(e){}
   window.addEventListener('online',()=>{cevrimici=true;durumGoster();bulutYukle();});
   window.addEventListener('offline',()=>{cevrimici=false;durumGoster();});
