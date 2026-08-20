@@ -210,7 +210,7 @@
 
 <script>
 /* ================= Sürüm / Güncelleme ================= */
-const APP_SURUM="urun-1.0";   // her yayında bunu ve version.json'u birlikte artır
+const APP_SURUM="urun-1.1";   // her yayında bunu ve version.json'u birlikte artır
 function uygulamayiGuncelle(){ location.replace(location.pathname+'?v='+Date.now()); } // önbelleği atlayıp en yeni sürümü çeker
 async function guncellemeKontrol(){
   try{ const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok)return;
@@ -939,7 +939,7 @@ async function kayitOl(){ var firma=(document.getElementById('g_firma').value||'
   hata.style.color='var(--muted)'; hata.textContent='Hesap oluşturuluyor...';
   try{ const {data,error}=await sb.auth.signUp({email,password:sifre,options:{data:{firma_adi:firma}}}); if(error)throw error;
     if(data.session){ oturum=data.session; hata.textContent=''; await girisSonrasi(); }
-    else { hata.style.color='var(--green)'; hata.textContent='Kayıt oluştu. E-posta doğrulaması açıksa gelen kutunu kontrol edip giriş yap.'; modKayit(false); }
+    else { modKayit(false); hata.style.color='var(--green)'; hata.textContent='Kayıt oluştu — artık giriş yapabilirsin.'; }
   }catch(e){ hata.style.color='var(--red)'; hata.textContent='Kayıt başarısız: '+(e.message||e); } }
 async function cikisYap(){ if(!confirm('Çıkış yapılsın mı?'))return;
   try{ if(sb&&oturum&&cevrimici){ const el=document.getElementById('bulutDurum'); if(el)el.textContent='⏳ kaydediliyor…'; await bulutGonder(); } }catch(e){}  // çıkmadan önce bekleyenleri buluta gönder
